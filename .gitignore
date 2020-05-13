@@ -10,3 +10,10 @@ configs/*
 !configs/linker.ld 
 !configs/example/
 
+BaoHypervisor.cflags
+BaoHypervisor.config
+BaoHypervisor.creator
+BaoHypervisor.creator.user
+BaoHypervisor.cxxflags
+BaoHypervisor.files
+BaoHypervisor.includes
