@@ -38,6 +38,7 @@ void init(uint64_t cpu_id, uint64_t load_addr, uint64_t config_addr)
     if (cpu.id == CPU_MASTER) {
         console_init();
         printk("Bao Hypervisor\n\r");
+        printk("Colors detected: size=%u, num=%u\n", COLOR_SIZE, COLOR_NUM);
     }
 
     interrupts_init();
@@ -45,5 +46,5 @@ void init(uint64_t cpu_id, uint64_t load_addr, uint64_t config_addr)
     vmm_init();
 
     /* Should never reach here */
-    while (1);
+    ERROR("Reached the End!");
 }

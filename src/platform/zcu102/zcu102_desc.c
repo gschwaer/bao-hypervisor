@@ -17,16 +17,12 @@
 
 struct platform_desc platform = {
     .cpu_num = 4,
-    .region_num = 2,
+    .region_num = 1,
     .regions =  (struct mem_region[]) {
         {
             .base = 0x00000000,
             .size = 0x80000000 
         },
-        {
-            .base = 0x800000000,
-            .size = 0x80000000 
-        }
     },
 
     .console = {
