@@ -96,6 +96,36 @@ void smc64_handler(uint32_t iss, uint64_t far, uint64_t il)
     cpu.vcpu->regs->elr_el2 += pc_step;
 }
 
+#include <fp_sched.h>
+
+void hvc64_handler(uint32_t iss, uint64_t far, uint64_t il)
+{
+    uint64_t param1 = vcpu_readreg(cpu.vcpu, 0);
+
+    switch (iss) {
+        case 0x1000: {
+            INFO("Guest requested CPU%lu id.", cpu.id);
+            vcpu_writereg(cpu.vcpu, 0, cpu.id);
+            break;
+        }
+        case 0x3331: {
+                INFO("Received Request for Memory Access for %ld on CPU%lu.", param1, cpu.id);
+                uint64_t res = fp_request_access(param1);
+                vcpu_writereg(cpu.vcpu, 0, res);
+                break;
+        }
+        case 0x3332: {
+            INFO("Received Revokation of Memory Access Request on CPU%lu.", cpu.id);
+            fp_revoke_access();
+            break;
+        }
+        default: {
+            ERROR("Unknown hypercall syndrom id: %ld on CPU%lu", iss, cpu.id);
+            break;
+        }
+    }
+}
+
 void sysreg_handler(uint32_t iss, uint64_t far, uint64_t il)
 {
     uint64_t reg_addr = iss & ESR_ISS_SYSREG_ADDR;
@@ -123,6 +153,7 @@ void sysreg_handler(uint32_t iss, uint64_t far, uint64_t il)
 
 abort_handler_t abort_handlers[64] = {[ESR_EC_DALEL] = aborts_data_lower,
                                       [ESR_EC_SMC64] = smc64_handler,
+                                      [ESR_EC_HVC64] = hvc64_handler,
                                       [ESR_EC_SYSRG] = sysreg_handler};
 
 void aborts_sync_handler()
