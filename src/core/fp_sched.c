@@ -17,7 +17,7 @@ enum { INJECT_SGI };
 
 void inter_vm_irq_handler(uint32_t event, uint64_t data) {
     if(event == INJECT_SGI) {
-        interrupts_vm_inject(cpu.vcpu->vm, data, cpu.vcpu->id /* can be dropped in newer versions */);
+        interrupts_vm_inject(cpu.vcpu->vm, data);
     }
 }
 CPU_MSG_HANDLER(inter_vm_irq_handler, INTER_VM_IRQ);
