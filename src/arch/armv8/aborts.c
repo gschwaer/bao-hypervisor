@@ -100,22 +100,19 @@ void smc64_handler(uint32_t iss, uint64_t far, uint64_t il)
 
 void hvc64_handler(uint32_t iss, uint64_t far, uint64_t il)
 {
-    uint64_t param1 = vcpu_readreg(cpu.vcpu, 0);
-
     switch (iss) {
         case 0x1000: {
-            INFO("Guest requested CPU%lu id.", cpu.id);
+            // respond with cpu id of the caller
             vcpu_writereg(cpu.vcpu, 0, cpu.id);
             break;
         }
         case 0x3331: {
-                INFO("Received Request for Memory Access for %ld on CPU%lu.", param1, cpu.id);
-                uint64_t res = fp_request_access(param1);
-                vcpu_writereg(cpu.vcpu, 0, res);
-                break;
+            uint64_t param1 = vcpu_readreg(cpu.vcpu, 0);
+            uint64_t res = fp_request_access(param1);
+            vcpu_writereg(cpu.vcpu, 0, res);
+            break;
         }
         case 0x3332: {
-            INFO("Received Revokation of Memory Access Request on CPU%lu.", cpu.id);
             fp_revoke_access();
             break;
         }

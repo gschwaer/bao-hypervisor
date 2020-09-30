@@ -22,21 +22,11 @@ void inter_vm_irq_handler(uint32_t event, uint64_t data) {
 }
 CPU_MSG_HANDLER(inter_vm_irq_handler, INTER_VM_IRQ);
 
-void print_info(void)
-{
-    INFO("Registered Requests:");
-    for (int64_t cpu = 0; cpu < NUM_CPUS; ++cpu) {
-        INFO("- CPU%lu: %ld", cpu, memory_requests[cpu]);
-    }
-    INFO("-> token owner: CPU%ld", token_owner);
-    INFO("-> token prio: %ld", token_priority);
-}
-
 #define CPU_MSG(handler,event,data) (&(cpu_msg_t){handler, event, data})
 
 uint64_t fp_request_access(uint64_t dec_prio)
 {
-	// using increasing priorities for the rest of the code
+    // using increasing priorities for the rest of the code
     int64_t priority = (int64_t)(NUM_CPUS - dec_prio);
 
     spin_lock(&memory_lock);
@@ -46,9 +36,9 @@ uint64_t fp_request_access(uint64_t dec_prio)
     if (priority > token_priority) {
         if (token_owner != TOKEN_NULL_OWNER &&
             (uint64_t)token_owner != cpu.id) {
-            INFO("Send interrupt to reclaim the token from %d and give to %d",
-                 token_owner,
-                 cpu.id);
+//            INFO("Send interrupt to reclaim the token from %d and give to %d",
+//                 token_owner,
+//                 cpu.id);
             cpu_send_msg((uint64_t)token_owner, 
                          CPU_MSG(INTER_VM_IRQ,
                                  INJECT_SGI,
@@ -59,13 +49,6 @@ uint64_t fp_request_access(uint64_t dec_prio)
     }
 
     int got_token = (token_owner == (int64_t)cpu.id);
-
-//  if (got_token) {
-//      INFO("CPU%lu Access requested and granted.", cpu.id);
-//  } else {
-//      INFO("CPU%lu Access requested and registered but not granted.", cpu.id);
-//  }
-//  print_info();
 
     spin_unlock(&memory_lock);
 
@@ -91,16 +74,13 @@ void fp_revoke_access()
         }
 
         if (token_owner != TOKEN_NULL_OWNER) {
-            INFO("Send interrupt to pass the token from %d to %d", cpu.id, token_owner);
+//            INFO("Send interrupt to pass the token from %d to %d", cpu.id, token_owner);
             cpu_send_msg((uint64_t)token_owner,
                          CPU_MSG(INTER_VM_IRQ,
                                  INJECT_SGI,
                                  FP_IPI_RESUME));
         }
     }
-
-//  INFO("CPU%lu Access revoked.", cpu.id);
-//  print_info();
 
     spin_unlock(&memory_lock);
 }
