@@ -5,7 +5,7 @@
 
 /* CONFIG */
 // How many different cpus will compete for the access?
-#define NUM_CPUS			2
+#define NUM_CPUS		8
 
 
 /* CONSTANTS */

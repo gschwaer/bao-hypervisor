@@ -9,11 +9,11 @@
 #define TOKEN_NULL_PRIORITY -1
 
 static spinlock_t memory_lock                     = SPINLOCK_INITVAL;
-static volatile int64_t memory_requests[NUM_CPUS] = { TOKEN_NULL_PRIORITY };
+static volatile int64_t memory_requests[NUM_CPUS] = { [0 ... NUM_CPUS-1] = TOKEN_NULL_PRIORITY };
 static volatile int64_t token_owner               = TOKEN_NULL_OWNER;
 static volatile int64_t token_priority            = TOKEN_NULL_PRIORITY;
 
-enum { INJECT_SGI };
+enum { INJECT_SGI = 1 };
 
 void inter_vm_irq_handler(uint32_t event, uint64_t data) {
     if(event == INJECT_SGI) {
