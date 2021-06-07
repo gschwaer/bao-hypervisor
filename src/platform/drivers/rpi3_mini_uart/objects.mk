@@ -1,0 +1,1 @@
+drivers-objs-y+=rpi3_mini_uart/rpi3_mini_uart.o

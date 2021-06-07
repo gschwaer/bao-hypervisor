@@ -48,6 +48,7 @@ struct platform_desc {
 
     struct {
         uint64_t base;
+        uint64_t gpio_base;
     } console;
 
     struct arch_platform arch;
