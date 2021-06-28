@@ -27,38 +27,84 @@ CPU_MSG_HANDLER(inter_vm_irq_handler, INTER_VM_IRQ);
 
 uint64_t fp_request_access(uint64_t dec_prio)
 {
+    uint64_t ts_entry = gtimer_get_ticks();
+
+    int64_t priority;
+    int got_token;
+    uint64_t response;
+    uint64_t ts_ipi_start = 0, ts_ipi_end = 0;
+    uint64_t ts_start, ts_end;
+    uint64_t o_hyptrap, o_lock, o_arbitration, o_send_ipi, o_unlock;
+    bool is_higher_prio;
+
+    // the guest mangles together ts_start and dec_prio
+    ts_start = dec_prio & ((1ULL << 60) - 1); // unmangle ts_start
+    dec_prio = dec_prio >> 60; // unmangle prio
+    o_hyptrap = gtimer_ticks_to_nano_seconds(ts_entry - ts_start);
+    ts_start = gtimer_get_ticks();
+
     // using increasing priorities for the rest of the code
-    int64_t priority = (int64_t)(NUM_CPUS - dec_prio);
+    priority = (int64_t)(NUM_CPUS - dec_prio);
 
     spin_lock(&memory_lock);
 
+    ts_end = gtimer_get_ticks();
+    o_lock = gtimer_ticks_to_nano_seconds(ts_end - ts_start);
+    ts_start = gtimer_get_ticks();
+
     memory_requests[cpu.id] = priority;
 
-    if (priority > token_priority) {
+    is_higher_prio = priority > token_priority;
+    if (is_higher_prio) {
         if (token_owner != TOKEN_NULL_OWNER &&
             (uint64_t)token_owner != cpu.id) {
 //            INFO("Send interrupt to reclaim the token from %d and give to %d",
 //                 token_owner,
 //                 cpu.id);
-            cpu_send_msg((uint64_t)token_owner, 
+            ts_ipi_start = gtimer_get_ticks();
+            cpu_send_msg((uint64_t)token_owner,
                          CPU_MSG(INTER_VM_IRQ,
                                  INJECT_SGI,
                                  FP_IPI_PAUSE));
+            ts_ipi_end = gtimer_get_ticks();
         }
         token_owner    = (int64_t)cpu.id;
         token_priority = priority;
     }
 
-    int got_token = (token_owner == (int64_t)cpu.id);
+    got_token = (token_owner == (int64_t)cpu.id);
+    response = got_token ? FP_REQ_RESP_ACK : FP_REQ_RESP_NACK;
+
+    ts_end = gtimer_get_ticks();
+    o_send_ipi = gtimer_ticks_to_nano_seconds(ts_ipi_end - ts_ipi_start);
+    o_arbitration = gtimer_ticks_to_nano_seconds(ts_end - ts_start) - o_send_ipi;
+    ts_start = gtimer_get_ticks();
 
     spin_unlock(&memory_lock);
 
-    return got_token ? FP_REQ_RESP_ACK : FP_REQ_RESP_NACK;
+    ts_end = gtimer_get_ticks();
+    o_unlock = gtimer_ticks_to_nano_seconds(ts_end - ts_start);
+
+    if (cpu.id == 2) {
+        // o_hyptrap, o_lock, o_arbitration, o_send_ipi, o_unlock, has_higher_prio:
+        printk("req, %lu, %lu, %lu, %lu, %lu, %u\n", o_hyptrap, o_lock, o_arbitration, o_send_ipi, o_unlock, is_higher_prio);
+    }
+    ts_start = gtimer_get_ticks();
+    response = (response << 60) | (ts_start & ((1ULL << 60) - 1)); // mangle ts_start into response
+    return response;
 }
 
 void fp_revoke_access()
 {
+    uint64_t ts_start, ts_end;
+    uint64_t ts_ipi_start = 0, ts_ipi_end = 0;
+    uint64_t o_lock, o_arbitration, o_send_ipi, o_unlock;
+
+    ts_start = gtimer_get_ticks();
     spin_lock(&memory_lock);
+    ts_end = gtimer_get_ticks();
+    o_lock = gtimer_ticks_to_nano_seconds(ts_end - ts_start);
+    ts_start = gtimer_get_ticks();
 
     memory_requests[cpu.id] = TOKEN_NULL_PRIORITY;
 
@@ -76,12 +122,25 @@ void fp_revoke_access()
 
         if (token_owner != TOKEN_NULL_OWNER) {
 //            INFO("Send interrupt to pass the token from %d to %d", cpu.id, token_owner);
+            ts_ipi_start = gtimer_get_ticks();
             cpu_send_msg((uint64_t)token_owner,
                          CPU_MSG(INTER_VM_IRQ,
                                  INJECT_SGI,
                                  FP_IPI_RESUME));
+            ts_ipi_end = gtimer_get_ticks();
         }
     }
 
+    ts_end = gtimer_get_ticks();
+    o_send_ipi = gtimer_ticks_to_nano_seconds(ts_ipi_end - ts_ipi_start);
+    o_arbitration = gtimer_ticks_to_nano_seconds(ts_end - ts_start) - o_send_ipi;
+    ts_start = gtimer_get_ticks();
     spin_unlock(&memory_lock);
+    ts_end = gtimer_get_ticks();
+    o_unlock = gtimer_ticks_to_nano_seconds(ts_end - ts_start);
+
+    if (cpu.id == 2) {
+        // o_lock, o_arbitration, o_send_ipi, o_unlock:
+        printk("rev, %lu, %lu, %lu, %lu\n", o_lock, o_arbitration, o_send_ipi, o_unlock);
+    }
 }
