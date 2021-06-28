@@ -16,6 +16,8 @@ static volatile int64_t token_priority            = TOKEN_NULL_PRIORITY;
 
 enum { INJECT_SGI = 1 };
 
+static volatile int64_t ts_start_ipi_send = -1;
+
 void inter_vm_irq_handler(uint32_t event, uint64_t data) {
     if(event == INJECT_SGI) {
         interrupts_vm_inject(cpu.vcpu->vm, data);
@@ -40,7 +42,11 @@ uint64_t fp_request_access(uint64_t dec_prio)
 //            INFO("Send interrupt to reclaim the token from %d and give to %d",
 //                 token_owner,
 //                 cpu.id);
-            cpu_send_msg((uint64_t)token_owner, 
+            // capture the ipi sending _to_ cpu 3
+            if (token_owner == 3 && ts_start_ipi_send == -1) {
+                ts_start_ipi_send = (int64_t)gtimer_get_ticks();
+            }
+            cpu_send_msg((uint64_t)token_owner,
                          CPU_MSG(INTER_VM_IRQ,
                                  INJECT_SGI,
                                  FP_IPI_PAUSE));
@@ -76,6 +82,10 @@ void fp_revoke_access()
 
         if (token_owner != TOKEN_NULL_OWNER) {
 //            INFO("Send interrupt to pass the token from %d to %d", cpu.id, token_owner);
+            // capture the ipi sending _to_ cpu 3
+            if (token_owner == 3 && ts_start_ipi_send == -1) {
+                ts_start_ipi_send = (int64_t)gtimer_get_ticks();
+            }
             cpu_send_msg((uint64_t)token_owner,
                          CPU_MSG(INTER_VM_IRQ,
                                  INJECT_SGI,
@@ -84,4 +94,15 @@ void fp_revoke_access()
     }
 
     spin_unlock(&memory_lock);
+}
+
+void fp_print_ipi_delay(uint64_t ts_end_ipi_send)
+{
+    if (cpu.id == 3 && ts_start_ipi_send != -1) {
+        uint64_t d_ipi = gtimer_ticks_to_nano_seconds(ts_end_ipi_send - (uint64_t)ts_start_ipi_send);
+        printk("d_ipi = %lu\n", d_ipi);
+        spin_lock(&memory_lock);
+        ts_start_ipi_send = -1;
+        spin_unlock(&memory_lock);
+    }
 }

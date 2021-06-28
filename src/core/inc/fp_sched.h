@@ -22,4 +22,6 @@ uint64_t fp_request_access(uint64_t dec_prio);
 /* Give back the access permissions. */
 void fp_revoke_access(void);
 
+void fp_print_ipi_delay(uint64_t ts_end_ipi_send);
+
 #endif // FP_SCHED_H

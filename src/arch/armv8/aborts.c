@@ -116,6 +116,11 @@ void hvc64_handler(uint32_t iss, uint64_t far, uint64_t il)
             fp_revoke_access();
             break;
         }
+        case 0x3333: {
+            uint64_t param1 = vcpu_readreg(cpu.vcpu, 0);
+            fp_print_ipi_delay(param1);
+            break;
+        }
         default: {
             ERROR("Unknown hypercall syndrom id: %ld on CPU%lu", iss, cpu.id);
             break;
