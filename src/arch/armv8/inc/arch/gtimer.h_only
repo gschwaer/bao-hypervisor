@@ -1,0 +1,31 @@
+#ifndef GTIMER_H_ONLY
+#define GTIMER_H_ONLY
+
+#include <stdint.h>
+
+#define MRS64(var,reg)   \
+  __asm__ volatile("mrs %0, " #reg "\n\t" : "=&r"(var) : : "memory")
+
+static inline uint64_t gtimer_get_ticks(void)
+{
+	uint64_t ticks;
+	MRS64(ticks, cntpct_el0);
+	return ticks;
+}
+
+static inline uint64_t gtimer_get_freq(void)
+{
+	uint64_t freq;
+	MRS64(freq, cntfrq_el0);
+	return freq;
+}
+
+static inline uint64_t gtimer_ticks_to_nano_seconds(uint64_t ticks)
+{
+	uint64_t freq, nano_sec;
+	MRS64(freq, cntfrq_el0);
+	nano_sec = (ticks * 1000ULL * 1000ULL * 1000ULL) / freq;
+	return nano_sec;
+}
+
+#endif // GTIMER_H_ONLY

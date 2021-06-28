@@ -4,6 +4,7 @@
 #include <cpu.h>
 #include <spinlock.h>
 #include <interrupts.h>
+#include <arch/gtimer.h_only>
 
 #define TOKEN_NULL_OWNER    -1
 #define TOKEN_NULL_PRIORITY -1

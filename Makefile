@@ -29,7 +29,7 @@ readelf=	$(CROSS_COMPILE)readelf
 size=		$(CROSS_COMPILE)size
 
 #Makefile arguments and default values
-DEBUG:=y
+DEBUG:=n
 OPTIMIZATIONS:=2
 CONFIG_BUILTIN=n
 CONFIG=
